@@ -1,2 +1,7 @@
 scalaVersion := "2.13.3"
-libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "2.0.0-M1"
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml"       % "2.0.0-M1"
+libraryDependencies += "org.scalactic"          %% "scalactic"       % "3.2.0"
+libraryDependencies += "org.scalatest"          %% "scalatest"       % "3.2.0"   % "test"
+libraryDependencies += "org.scalamock"          %% "scalamock"       % "5.0.0"   % "test"
+libraryDependencies += "org.scalacheck"         %% "scalacheck"      % "1.14.3"  % "test"
+libraryDependencies += "org.scalatestplus"      %% "scalacheck-1-14" % "3.2.0.0" % "test"

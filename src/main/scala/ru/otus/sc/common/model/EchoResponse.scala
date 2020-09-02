@@ -1,3 +1,3 @@
-package ru.otus.sc.greet.model
+package ru.otus.sc.common.model
 
 case class EchoResponse[T] (content: T)

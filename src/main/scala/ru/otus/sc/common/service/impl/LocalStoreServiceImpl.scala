@@ -1,9 +1,11 @@
-package ru.otus.sc.greet.service.impl
+package ru.otus.sc.common.service.impl
 
-import ru.otus.sc.greet.service.LocalStoreService
+import ru.otus.sc.common.service.LocalStoreService
 
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
+//TODO: использовать immutable отображение
 class LocalStoreServiceImpl(keys: Set[String]) extends LocalStoreService {
 
   val keyValueStore: mutable.Map[String, Any] =
@@ -13,12 +15,12 @@ class LocalStoreServiceImpl(keys: Set[String]) extends LocalStoreService {
 
   override def contains(key: String): Boolean = keyValueStore.contains(key)
 
-  override def put(key: String, value: Any): Option[IllegalArgumentException] = {
+  override def put(key: String, value: Any): Try[Any] = {
     if (keys.contains(key)) {
       keyValueStore.put(key, value)
-      None
+      Success(value)
     } else {
-      Some(new IllegalArgumentException(s"Unable to put value '$value' by key '$key'. Key is not registered"))
+      Failure(new IllegalArgumentException(s"Unable to put value '$value' by key '$key'. Key is not registered"))
     }
   }
 }

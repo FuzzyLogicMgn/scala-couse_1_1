@@ -1,4 +1,4 @@
-package ru.otus.sc.greet.dao
+package ru.otus.sc.accounting.model
 
 /**
  * Структура, описывающая курс пары валют

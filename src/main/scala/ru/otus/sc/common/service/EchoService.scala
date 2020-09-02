@@ -1,6 +1,6 @@
-package ru.otus.sc.greet.service
+package ru.otus.sc.common.service
 
-import ru.otus.sc.greet.model.{EchoRequest, EchoResponse}
+import ru.otus.sc.common.model.{EchoRequest, EchoResponse}
 
 /**
  * Сервис эхо. Возвращает значение принятое на вход

@@ -1,27 +1,48 @@
 package ru.otus.sc
 
-import ru.otus.sc.greet.dao.ExchangeRate
-import ru.otus.sc.greet.dao.impl.{ExchangeRatesDaoImpl, GreetingDaoImpl}
-import ru.otus.sc.greet.model._
-import ru.otus.sc.greet.service.impl.{
+import ru.otus.sc.accounting.dao.impl.ExchangeRatesDaoImpl
+import ru.otus.sc.accounting.dao.impl.map.{AccountDaoImpl, ClientDaoImpl, TransactionDaoImpl}
+import ru.otus.sc.accounting.model.{
+  AccountCreateRequest,
+  AccountCreateResponse,
+  AccountPostTransactionRequest,
+  AccountPostTransactionResponse,
+  AccountReadRequest,
+  AccountReadResponse,
+  ClientCreateRequest,
+  ClientCreateResponse,
+  ExchangeRate,
+  ExchangeRatesRequest,
+  ExchangeRatesResponse
+}
+import ru.otus.sc.accounting.service.{AccountService, ClientService, ExchangeRatesService}
+import ru.otus.sc.accounting.service.impl.{
+  AccountServiceImpl,
+  ClientServiceImpl,
+  ExchangeRatesServiceImpl
+}
+import ru.otus.sc.common.model.{EchoRequest, EchoResponse}
+import ru.otus.sc.common.service.impl.{
   EchoServiceImpl,
-  ExchangeRatesServiceImpl,
-  GreetingServiceImpl,
   InvocationCounterServiceImpl,
   LocalStoreServiceImpl
 }
-import ru.otus.sc.greet.service.{
-  EchoService,
-  ExchangeRatesService,
-  GreetingService,
-  InvocationCounterService,
-  LocalStoreService
-}
+import ru.otus.sc.common.service.{EchoService, InvocationCounterService, LocalStoreService}
+import ru.otus.sc.greet.dao.impl.GreetingDaoImpl
+import ru.otus.sc.greet.model._
+import ru.otus.sc.greet.service.impl.GreetingServiceImpl
+import ru.otus.sc.greet.service.GreetingService
+
+import scala.util.{Failure, Success}
 
 trait App {
   def greet(request: GreetRequest): GreetResponse
   def getCurrencyExchangeRate(request: ExchangeRatesRequest): ExchangeRatesResponse
   def echo[T](request: EchoRequest[T]): EchoResponse[T]
+  def createClient(request: ClientCreateRequest): ClientCreateResponse
+  def createAccount(request: AccountCreateRequest): AccountCreateResponse
+  def readAccount(request: AccountReadRequest): AccountReadResponse
+  def postTransaction(request: AccountPostTransactionRequest): AccountPostTransactionResponse
 }
 
 object App {
@@ -30,7 +51,9 @@ object App {
       exchangeRates: ExchangeRatesService,
       echoService: EchoService,
       counterService: InvocationCounterService,
-      localStoreService: LocalStoreService
+      localStoreService: LocalStoreService,
+      clientService: ClientService,
+      accountService: AccountService
   ) extends App {
     def greet(request: GreetRequest): GreetResponse = {
       counterService.incrementAndGet(greeting.getServiceName)
@@ -51,8 +74,8 @@ object App {
           response.rate match {
             case Some(value) =>
               localStoreService.put(value.secid, value) match {
-                case Some(exception) => App.log(exception.getMessage)
-                case None =>
+                case Failure(exception) => App.log(exception.getMessage)
+                case Success(value)     =>
               }
             case None =>
           }
@@ -64,6 +87,19 @@ object App {
       counterService.incrementAndGet(echoService.getServiceName)
       echoService.echo(request)
     }
+
+    override def createClient(request: ClientCreateRequest): ClientCreateResponse =
+      clientService.create(request)
+
+    override def createAccount(request: AccountCreateRequest): AccountCreateResponse =
+      accountService.create(request)
+
+    override def readAccount(request: AccountReadRequest): AccountReadResponse =
+      accountService.read(request)
+
+    override def postTransaction(
+        request: AccountPostTransactionRequest
+    ): AccountPostTransactionResponse = accountService.postTransaction(request)
   }
 
   def apply(): App = {
@@ -72,20 +108,24 @@ object App {
 
     val exchangeRatesDao     = new ExchangeRatesDaoImpl
     val exchangeRatesService = new ExchangeRatesServiceImpl(exchangeRatesDao)
+    val clientService        = new ClientServiceImpl(new ClientDaoImpl)
+    val accountService       = new AccountServiceImpl(new AccountDaoImpl, new TransactionDaoImpl, exchangeRatesService)
     new AppImpl(
       greetingService,
       exchangeRatesService,
       new EchoServiceImpl,
       new InvocationCounterServiceImpl,
       // Кэшируем значения только для пары USD/RUB
-      new LocalStoreServiceImpl(Set("USD/RUB"))
+      new LocalStoreServiceImpl(Set("USD/RUB")),
+      clientService,
+      accountService
     )
   }
 
   /**
-   * TODO: Перейти на SLF4J или найти аналог для Scala
-   * @param message - сообещение для логирования
-   */
+    * TODO: Перейти на SLF4J или найти аналог для Scala
+    * @param message - сообещение для логирования
+    */
   def log(message: String): Unit = {
     System.err.println(message)
   }
