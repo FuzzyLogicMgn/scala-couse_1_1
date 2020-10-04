@@ -1,6 +1,7 @@
 package ru.otus.sc.accounting.dao
 
-import ru.otus.sc.accounting.model.{Currency, ExchangeRate}
+import ru.otus.sc.accounting.model.Currency.Currency
+import ru.otus.sc.accounting.model.ExchangeRate
 
 
 trait ExchangeRatesDao {

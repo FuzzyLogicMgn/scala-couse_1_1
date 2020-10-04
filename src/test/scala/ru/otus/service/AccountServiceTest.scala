@@ -3,23 +3,27 @@ package ru.otus.service
 import java.util.UUID
 
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.should.Matchers._
-import ru.otus.sc.accounting.dao.impl.map.TransactionDaoImpl
 import ru.otus.sc.accounting.dao.{Account, AccountDao, Transaction, TransactionDao}
 import ru.otus.sc.accounting.model._
 import ru.otus.sc.accounting.service.ExchangeRatesService
 import ru.otus.sc.accounting.service.impl.AccountServiceImpl
+
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 //TODO: Написать больше тестовых сценариев для транзакций
 class AccountServiceTest extends AnyFreeSpec with MockFactory {
 
   val account1: Account = Account(Some(UUID.randomUUID()), UUID.randomUUID(), Amount(0))
   val account2: Account = Account(Some(UUID.randomUUID()), UUID.randomUUID(), Amount(0))
+  implicit val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
 
   "AccountServiceTests " - {
 
     "Post transaction" in {
+
       val accountDao      = mock[AccountDao]
       val tranDao         = mock[TransactionDao]
       val exchangeService = mock[ExchangeRatesService]
@@ -28,16 +32,16 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
       val tran2           = tran.copy(id = Some(UUID.randomUUID()))
       val finalAccount    = account1.copy(amount = Amount(75))
 
-      (accountDao.read _).expects(account1.id.get).returns(Some(account1))
-      (accountDao.update _).expects(finalAccount).returns(Some(finalAccount))
-      (tranDao.create _).expects(tran).returns(tran2)
+      (accountDao.read _).expects(account1.id.get).returns(Future.successful(Some(account1)))
+      (accountDao.update _).expects(finalAccount).returns(Future.successful(Some(finalAccount)))
+      (tranDao.create _).expects(tran).returns(Future.successful(tran2))
       (exchangeService.convertAmount _)
         .expects(ExchangeRatesConvertRequest(tran.amount, account1.amount.currency))
         .returns(ExchangeRatesConvertResponse.Success(Amount(75)))
 
       srv.postTransaction(
         AccountPostTransactionRequest(tran)
-      ) shouldBe AccountPostTransactionResponse.Success(tran2)
+      ).futureValue shouldBe AccountPostTransactionResponse.Success(tran2)
 
     }
 
@@ -45,9 +49,9 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
       val dao = mock[AccountDao]
       val srv = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
 
-      (dao.create _).expects(account1).returns(account2)
+      (dao.create _).expects(account1).returns(Future.successful(account2))
 
-      srv.create(AccountCreateRequest(account1)) shouldBe AccountCreateResponse(account2)
+      srv.create(AccountCreateRequest(account1)).futureValue shouldBe AccountCreateResponse(account2)
     }
 
     "getAccount" - {
@@ -56,9 +60,9 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
         val srv = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
         val id  = UUID.randomUUID()
 
-        (dao.read _).expects(id).returns(Some(account1))
+        (dao.read _).expects(id).returns(Future.successful(Some(account1)))
 
-        srv.read(AccountReadRequest(id)) shouldBe AccountReadResponse.Success(account1)
+        srv.read(AccountReadRequest(id)).futureValue shouldBe AccountReadResponse.Success(account1)
       }
 
       "should return NotFound on unknown account" in {
@@ -66,9 +70,9 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
         val srv = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
         val id  = UUID.randomUUID()
 
-        (dao.read _).expects(id).returns(None)
+        (dao.read _).expects(id).returns(Future.successful(None))
 
-        srv.read(AccountReadRequest(id)) shouldBe AccountReadResponse.NotFound(id)
+        srv.read(AccountReadRequest(id)).futureValue shouldBe AccountReadResponse.NotFound(id)
       }
     }
 
@@ -77,18 +81,18 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
         val dao = mock[AccountDao]
         val srv = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
 
-        (dao.update _).expects(account1).returns(Some(account2))
+        (dao.update _).expects(account1).returns(Future.successful(Some(account2)))
 
-        srv.update(AccountUpdateRequest(account1)) shouldBe AccountUpdateResponse.Success(account2)
+        srv.update(AccountUpdateRequest(account1)).futureValue shouldBe AccountUpdateResponse.Success(account2)
       }
 
       "should return NotFound on unknown account" in {
         val dao = mock[AccountDao]
         val srv = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
 
-        (dao.update _).expects(account1).returns(None)
+        (dao.update _).expects(account1).returns(Future.successful(None))
 
-        srv.update(AccountUpdateRequest(account1)) shouldBe AccountUpdateResponse.NotFound(
+        srv.update(AccountUpdateRequest(account1)).futureValue shouldBe AccountUpdateResponse.NotFound(
           account1.id.get
         )
       }
@@ -98,7 +102,7 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
         val srv     = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
         val Account = account1.copy(id = None)
 
-        srv.update(AccountUpdateRequest(Account)) shouldBe AccountUpdateResponse.AccountWithoutId
+        srv.update(AccountUpdateRequest(Account)).futureValue shouldBe AccountUpdateResponse.AccountWithoutId
       }
     }
 
@@ -108,9 +112,9 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
         val srv = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
         val id  = UUID.randomUUID()
 
-        (dao.delete _).expects(id).returns(Some(account1))
+        (dao.delete _).expects(id).returns(Future.successful(Some(account1)))
 
-        srv.delete(AccountDeleteRequest(id)) shouldBe AccountDeleteResponse.Success(account1)
+        srv.delete(AccountDeleteRequest(id)).futureValue shouldBe AccountDeleteResponse.Success(account1)
       }
 
       "should return NotFound on unknown account" in {
@@ -118,9 +122,9 @@ class AccountServiceTest extends AnyFreeSpec with MockFactory {
         val srv = new AccountServiceImpl(dao, mock[TransactionDao], mock[ExchangeRatesService])
         val id  = UUID.randomUUID()
 
-        (dao.delete _).expects(id).returns(None)
+        (dao.delete _).expects(id).returns(Future.successful(None))
 
-        srv.delete(AccountDeleteRequest(id)) shouldBe AccountDeleteResponse.NotFound(id)
+        srv.delete(AccountDeleteRequest(id)).futureValue shouldBe AccountDeleteResponse.NotFound(id)
       }
     }
 

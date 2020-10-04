@@ -1,42 +1,66 @@
-import ru.otus.sc._
-import ru.otus.sc.accounting.dao.{Account, Client, Transaction}
-import ru.otus.sc.accounting.model.{AccountCreateRequest, AccountPostTransactionRequest, AccountPostTransactionResponse, AccountReadRequest, AccountReadResponse, Amount, ClientCreateRequest, Currency, ExchangeRatesRequest}
-import ru.otus.sc.common.model.EchoRequest
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import ru.otus.sc.Config
+import ru.otus.sc.accounting.dao.impl.ExchangeRatesDaoImpl
+import ru.otus.sc.accounting.dao.impl.map.TransactionDaoImpl
+import ru.otus.sc.accounting.dao.impl.slick.{AccountDaoSlickImpl, ClientDaoSlickImpl}
+import ru.otus.sc.accounting.route.{AccountRouter, ClientRouter}
+import ru.otus.sc.accounting.service.impl.{
+  AccountServiceImpl,
+  ClientServiceImpl,
+  ExchangeRatesServiceImpl
+}
+import ru.otus.sc.db.Migrations
+import ru.otus.sc.route.AppRouter
+import slick.jdbc.JdbcBackend.Database
 
+import scala.concurrent.ExecutionContext
+import scala.io.StdIn
+import scala.util.Using
+
+//TODO:
+// 1. Logging
+
+/**
+  * CREATE USER:
+  * curl -X POST -d '{"name":"bob"}' -H 'Content-Type: application/json' http://localhost:8080/api/v1/client
+  * CREATE ACCOUNT:
+  * curl -X POST -d '{"id":{userID}, "name":"bob"}' -H 'Content-Type: application/json' http://localhost:8080/api/v1/account
+  * POST TRANSACTION:
+  * curl -X POST -d '{"value":150}' -H 'Content-Type: application/json' http://localhost:8080/api/v1/account/{accountID}
+  * OR Scala-Otus.postman_collection.json
+  */
 object Main {
+
+  def createRouter(database: Database)(implicit ec: ExecutionContext): AppRouter = {
+
+    val dao          = new ClientDaoSlickImpl(database)
+    val service      = new ClientServiceImpl(dao)
+    val clientRouter = new ClientRouter(service)
+
+    val accDao          = new AccountDaoSlickImpl(database)
+    val tranDao         = new TransactionDaoImpl
+    val exchangeService = new ExchangeRatesServiceImpl(new ExchangeRatesDaoImpl)
+    val accRouter       = new AccountRouter(new AccountServiceImpl(accDao, tranDao, exchangeService))
+
+    new AppRouter(clientRouter, accRouter)
+  }
+
   def main(args: Array[String]): Unit = {
-    val app = App()
-    // Эхо сервис
-    System.out.println(s"Echo response: ${app.echo(EchoRequest("First message")).content}")
-    System.out.println(s"Echo response: ${app.echo(EchoRequest("Second message")).content}")
+    val config = Config.default
 
-    // Сервис курсов валют
-    System.out.println(
-      s"Exchange rate USD/RUB: ${app.getCurrencyExchangeRate(ExchangeRatesRequest("USD/RUB")).rate.get.rate}"
-    )
-    System.out.println(
-      s"Exchange rate USD/RUB (from cache): ${app.getCurrencyExchangeRate(ExchangeRatesRequest("USD/RUB")).rate.get.rate}"
-    )
+    implicit val system: ActorSystem = ActorSystem("system")
+    import system.dispatcher
 
-    val client  = app.createClient(ClientCreateRequest(Client(None, "SomeBody"))).client
-    val account = app.createAccount(AccountCreateRequest(Account(None, client.id.get, Amount(0)))).account
-    app.postTransaction(
-      AccountPostTransactionRequest(
-        Transaction(None, account.id.get, Amount(500, Currency.USD))
-      )
-    ) match {
-      case AccountPostTransactionResponse.Success(transaction) => println(s"Transaction success")
-      case AccountPostTransactionResponse.RejectNotFoundAccount(accountId) =>
-        println(s"Transaction fail: account not found")
-      case AccountPostTransactionResponse.RejectNotFoundRate(secId) =>
-        println(s"Transaction fail: rate not found")
-      case AccountPostTransactionResponse.RejectNotEnoughFunds(accountId, balance) =>
-        println(s"Transaction fail: not enough funds")
-    }
-    app.readAccount(AccountReadRequest(account.id.get)) match {
-      case AccountReadResponse.Success(account) => println(s"Current balance: ${account.amount}")
-      case AccountReadResponse.NotFound(id) =>
-        println(s"Account with id ${account.id.get} not found")
+    Using.resource(Database.forURL(config.dbUrl, config.dbUserName, config.dbPassword)) { db =>
+      new Migrations(config).applyMigrationsSync()
+      val binding = Http().newServerAt("localhost", 8080).bind(createRouter(db).route)
+
+      binding.foreach(b => println(s"Start listen on ${b.localAddress}"))
+
+      StdIn.readLine()
+
+      binding.map(_.unbind()).onComplete(_ => system.terminate())
     }
 
   }

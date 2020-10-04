@@ -16,7 +16,3 @@ case class Transaction(
 ) extends EntityWithId[Transaction] {
   override def copyWithId(id: UUID): Transaction = copy(Some(id))
 }
-
-class AmountOrdering(exchangeRatesService: ExchangeRatesService) extends Ordering[Transaction] {
-  override def compare(x: Transaction, y: Transaction): Int = (x.amount.value - 1.toInt).toInt
-}
