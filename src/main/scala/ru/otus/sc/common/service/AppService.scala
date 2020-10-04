@@ -1,4 +1,4 @@
-package ru.otus.sc.greet.service
+package ru.otus.sc.common.service
 
 /**
   * Родитель для всех сервисов приложения.

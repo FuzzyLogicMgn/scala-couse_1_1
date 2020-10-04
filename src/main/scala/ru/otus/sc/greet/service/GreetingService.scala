@@ -1,5 +1,6 @@
 package ru.otus.sc.greet.service
 
+import ru.otus.sc.common.service.AppService
 import ru.otus.sc.greet.model.{GreetRequest, GreetResponse}
 
 trait GreetingService extends AppService {

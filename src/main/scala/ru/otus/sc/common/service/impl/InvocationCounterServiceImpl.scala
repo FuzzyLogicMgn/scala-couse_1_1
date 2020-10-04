@@ -1,10 +1,10 @@
-package ru.otus.sc.greet.service.impl
+package ru.otus.sc.common.service.impl
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 import ru.otus.sc.App
-import ru.otus.sc.greet.service.InvocationCounterService
+import ru.otus.sc.common.service.InvocationCounterService
 
 class InvocationCounterServiceImpl extends InvocationCounterService {
 

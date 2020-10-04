@@ -1,7 +1,7 @@
-package ru.otus.sc.greet.service.impl
+package ru.otus.sc.common.service.impl
 
-import ru.otus.sc.greet.model.{EchoRequest, EchoResponse}
-import ru.otus.sc.greet.service.EchoService
+import ru.otus.sc.common.model.{EchoRequest, EchoResponse}
+import ru.otus.sc.common.service.EchoService
 
 class EchoServiceImpl extends EchoService {
 
