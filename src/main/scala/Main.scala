@@ -4,12 +4,8 @@ import ru.otus.sc.Config
 import ru.otus.sc.accounting.dao.impl.ExchangeRatesDaoImpl
 import ru.otus.sc.accounting.dao.impl.map.TransactionDaoImpl
 import ru.otus.sc.accounting.dao.impl.slick.{AccountDaoSlickImpl, ClientDaoSlickImpl}
-import ru.otus.sc.accounting.route.{AccountRouter, ClientRouter}
-import ru.otus.sc.accounting.service.impl.{
-  AccountServiceImpl,
-  ClientServiceImpl,
-  ExchangeRatesServiceImpl
-}
+import ru.otus.sc.accounting.route.{AccountRouter, ClientRouter, DocRouter}
+import ru.otus.sc.accounting.service.impl.{AccountServiceImpl, ClientServiceImpl, ExchangeRatesServiceImpl}
 import ru.otus.sc.db.Migrations
 import ru.otus.sc.route.AppRouter
 import slick.jdbc.JdbcBackend.Database
@@ -43,7 +39,9 @@ object Main {
     val exchangeService = new ExchangeRatesServiceImpl(new ExchangeRatesDaoImpl)
     val accRouter       = new AccountRouter(new AccountServiceImpl(accDao, tranDao, exchangeService))
 
-    new AppRouter(clientRouter, accRouter)
+    val docRouter = new DocRouter(clientRouter, accRouter)
+
+    new AppRouter(clientRouter, accRouter, docRouter)
   }
 
   def main(args: Array[String]): Unit = {

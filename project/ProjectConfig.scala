@@ -3,7 +3,7 @@ import sbt._
 object ProjectConfig {
 
   object versions {
-    val akka        = "2.6.8"
+    val akka        = "2.6.9"
     val `akka-http` = "10.2.0"
 
     val `akka-http-play-json` = "1.34.0"
@@ -32,6 +32,8 @@ object ProjectConfig {
     val testcontainers = "0.38.1"
 
     val scalaxml = "2.0.0-M1"
+
+    val tapir = "0.17.0-M2"
   }
 
   val testDependencies = Seq(
@@ -84,6 +86,15 @@ object ProjectConfig {
     "org.scala-lang.modules" %% "scala-xml" % versions.scalaxml
   )
 
+  val docDependencies = Seq(
+    "com.softwaremill.sttp.tapir" %% "tapir-core" % versions.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-json-play" % versions.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % versions.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % versions.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe-yaml" % versions.tapir,
+    "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % versions.tapir
+  )
+
   val projectDependencies: Seq[ModuleID] =
     testDependencies ++
       akkaDependencies ++
@@ -92,5 +103,6 @@ object ProjectConfig {
       slickDependencies ++
       dbDependencies ++
       logDependencies ++
-      xmlDependencies
+      xmlDependencies ++
+      docDependencies
 }
