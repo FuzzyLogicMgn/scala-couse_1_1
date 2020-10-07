@@ -2,6 +2,7 @@ package ru.otus.sc.accounting.dao.impl
 
 import ru.otus.sc.App
 import ru.otus.sc.accounting.dao.ExchangeRatesDao
+import ru.otus.sc.accounting.model.Currency.Currency
 import ru.otus.sc.accounting.model.{Currency, ExchangeRate}
 
 import scala.xml.XML
@@ -44,7 +45,7 @@ class ExchangeRatesDaoImpl extends ExchangeRatesDao {
     exchangeRatesBySecId
       .flatMap(entry =>
         entry._1 match {
-          case currencyPairRegex(first, BILLING_CURRENCY.id) =>
+          case currencyPairRegex(first, BILLING_CURRENCY.secid) =>
             first match {
               case Currency(cur) => Seq(cur -> entry._2)
               case _             => Seq()
@@ -59,6 +60,6 @@ class ExchangeRatesDaoImpl extends ExchangeRatesDao {
   override def getBillingRates(currency: Currency): ExchangeRate =
     currency match {
       case BILLING_CURRENCY => ExchangeRate("BILLING_CURRENCY", 1)
-      case _                => billingCurrencyRate(currency)
+      case other                => billingCurrencyRate(other)
     }
 }

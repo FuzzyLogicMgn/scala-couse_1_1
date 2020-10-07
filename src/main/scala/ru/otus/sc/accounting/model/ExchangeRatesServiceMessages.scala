@@ -1,5 +1,7 @@
 package ru.otus.sc.accounting.model
 
+import ru.otus.sc.accounting.model.Currency.Currency
+
 case class ExchangeRatesRequest(secid: String)
 case class ExchangeRatesResponse(rate: Option[ExchangeRate])
 
